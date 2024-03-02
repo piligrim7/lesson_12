@@ -20,7 +20,7 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <div class="">
-                    <img src="jobs.webp" class="card-img-top" alt="vacancy" style="max-width: 100px">
+                    <img src="{{ url_for('static', filename='img/jobs.webp') }}" class="card-img-top" alt="vacancy" style="max-width: 100px">
                     <a class="navbar-brand зl-4" href="#">HH-PARSER</a>
                 </div class="wr-2">
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
@@ -30,13 +30,13 @@
                 <div class="collapse navbar-collapse d-flex justify-content-center" id="navbarSupportedContent"  >
                     <ul class="navbar-nav mr-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">Главная</a>
+                            <a class="nav-link active" href="/">Главная</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="form.html">Ввод данных</a>
+                            <a class="nav-link" href="/form/">Аналитика по вакансии</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="contacts.html">Контакты</a>
+                            <a class="nav-link" href="/contacts/">Контакты</a>
                         </li>
                     </ul>
                 </div>
@@ -45,21 +45,24 @@
         <div class="card m-2 " data-bs-theme="dark" style="max-width: 500px">
             <div class="card-body ">
                 <h5 class="card-title">Страница результатов</h5>
-                <img src="hard_choice.png" class="card-img-top" alt="vacancy" >
+                <img src="{{ url_for('static', filename='img/hard_choice.png') }}" class="card-img-top" alt="vacancy" >
                 <br>
                 <br>
-                <h6>Параметры запроса:</h6>
-                <ul>
+                <h6>Строка запроса:</h6>
+
+                Количество найденных вакансий: {{vacancies_count}}
+                <!--<ul>
                     <li>python developer</li>
                     <li>В названии вакансии</li>
-                </ul>
+                </ul>-->
+                {%if vacancies%}
                 <h6>Топ-5 навыков:</h6>
                 <ul>
-                    <li>python</li>
-                    <li>sql</li>
-                    <li>linux</li>
-                    <li>django</li>
-                    <li>postgresql</li>
+                    {% for item in vacancies %}
+                        <li>
+                            {{item}}
+                        </li>
+                    {% endfor %}
                 </ul>
                 <h6>Аналитика:</h6>
                 <table class="container" >
@@ -100,6 +103,9 @@
                         <td>4.5%</td>
                     </tr>
                 </table>
+                {%else%}
+                    По указанному запросу ничего не найдено
+                {%endif%}
             </div>
         </div>
         <!-- Вариант 1: пакет Bootstrap с Popper -->

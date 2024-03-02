@@ -24,7 +24,7 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <div class="">
-                    <img src="jobs.webp" class="card-img-top" alt="vacancy" style="max-width: 100px;">
+                    <img src="{{ url_for('static', filename='img/jobs.webp') }}" class="card-img-top" alt="vacancy" style="max-width: 100px;">
                     <a class="navbar-brand зl-4" href="#">HH-PARSER</a>
                 </div class="wr-2">
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
@@ -34,13 +34,13 @@
                 <div class="collapse navbar-collapse d-flex justify-content-center" id="navbarSupportedContent"  >
                     <ul class="navbar-nav mr-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">Главная</a>
+                            <a class="nav-link active" href="/">Главная</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="form.html">Ввод данных</a>
+                            <a class="nav-link" href="/form/">Аналитика по вакансии</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="contacts.html">Контакты</a>
+                            <a class="nav-link" href="/contacts/">Контакты</a>
                         </li>
                         <!-- <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
@@ -72,12 +72,16 @@
         </div> -->
         <div class="card m-2 " data-bs-theme="dark">
             <div class="card-body ">
-                <h5 class="card-title">Контакты</h5>
-                <img src="pochta.jpg" class="card-img-top" alt="vacancy" style="max-width: 400px">
+                <h5 class="card-title">{{title}}</h5>
+                <img src="{{ url_for('static', filename='img/pochta.jpg') }}" class="card-img-top" alt="vacancy" style="max-width: 400px">
                 <p>
 
                 </p>
-                <p class="card-text">Email: some-address@mail.ru</p>
+                <p class="card-text">Email: {{email}}</p>
+                <p class="card-text">Тел.: {{phone}}</p>
+                <hr>
+                <p class="card-text">Разработка сайта: {{dev_name}}</p>
+
                     <!-- <a href="#" class="btn btn-primary ">Go somewhere</a> -->
             </div>
         </div>
