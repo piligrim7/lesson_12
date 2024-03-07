@@ -2,7 +2,7 @@
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <![endif]-->
 <html data-bs-theme="dark">
     <head>
         <meta charset="utf-8">
@@ -20,7 +20,7 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container-fluid">
                 <div class="">
-                    <img src="jobs.webp" class="card-img-top" alt="vacancy" style="max-width: 100px">
+                    <img src="{{ url_for('static', filename='img/jobs.webp') }}" class="card-img-top" alt="vacancy" style="max-width: 100px">
                     <a class="navbar-brand зl-4" href="#">HH-PARSER</a>
                 </div class="wr-2">
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
@@ -30,13 +30,13 @@
                 <div class="collapse navbar-collapse d-flex justify-content-center" id="navbarSupportedContent"  >
                     <ul class="navbar-nav mr-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="index.html">Главная</a>
+                            <a class="nav-link" href="/">Главная</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="form.html">Ввод данных</a>
+                            <a class="nav-link" href="/form/">Аналитика по вакансиям</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="contacts.html">Контакты</a>
+                            <a class="nav-link" href="/contacts/">Контакты</a>
                         </li>
                     </ul>
                 </div>
@@ -44,62 +44,59 @@
         </nav>
         <div class="card m-2 " data-bs-theme="dark" style="max-width: 500px">
             <div class="card-body ">
-                <h5 class="card-title">Страница результатов</h5>
-                <img src="hard_choice.png" class="card-img-top" alt="vacancy" >
+                <h5 class="card-title">{{title}}</h5>
+                <img src="{{ url_for('static', filename='img/hard_choice.png') }}" class="card-img-top" alt="vacancy" >
                 <br>
                 <br>
-                <h6>Параметры запроса:</h6>
-                <ul>
-                    <li>python developer</li>
-                    <li>В названии вакансии</li>
-                </ul>
-                <h6>Топ-5 навыков:</h6>
-                <ul>
-                    <li>python</li>
-                    <li>sql</li>
-                    <li>linux</li>
-                    <li>django</li>
-                    <li>postgresql</li>
-                </ul>
-                <h6>Аналитика:</h6>
-                <table class="container" >
-                    <tr>
-                        <th>Номер</th>
-                        <th>Навык</th>
-                        <th>Количество</th>
-                        <th>Частота</th>
-                    </tr>
-                    <tr>
-                        <td>1</td>
-                        <td>Python</td>
-                        <td>21</td>
-                        <td>23.6%</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>sql</td>
-                        <td>11</td>
-                        <td>12.4%</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>linux</td>
-                        <td>8</td>
-                        <td>9.0%</td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>django</td>
-                        <td>7</td>
-                        <td>7.9%</td>
-                    </tr>
-                    <tr>
-                        <td>5</td>
-                        <td>postgresql</td>
-                        <td>4</td>
-                        <td>4.5%</td>
-                    </tr>
-                </table>
+                <h6>Строка запроса: {{query_string}}</h6>
+                <br>
+                <h6>Количество найденных вакансий: {{vacancies_count}}</h6>
+                <br>
+                {%if skills%}
+                    <h6>Аналитика по первым {{stat_count}} предложениям:</h6>
+                    <br>
+                    {%if average_salary>-1%}
+                        <h6>Средняя заработная плата: {{average_salary}} руб.</h6>
+                        <br>
+                    {%endif%}
+                    <h6>Топ-{{top_count}} городов c предложениями работы:</h6>
+                    <table class="container">
+                        <tr>
+                            <th>Номер</th>
+                            <th>Город (область)</th>
+                            <th>Количество</th>
+                            <th>Частота</th>
+                        </tr>
+                        {% for num, name, cnt, freq in areas %}
+                            <tr>
+                                <td>{{num}}</td>
+                                <td>{{name}}</td>
+                                <td>{{cnt}}</td>
+                                <td>{{freq}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    <br>
+                    <h6>Топ-{{top_count}} навыков:</h6>
+                    <table class="container">
+                        <tr>
+                            <th>Номер</th>
+                            <th>Навык</th>
+                            <th>Количество</th>
+                            <th>Частота</th>
+                        </tr>
+                        {% for num, name, cnt, freq in skills %}
+                            <tr>
+                                <td>{{num}}</td>
+                                <td>{{name}}</td>
+                                <td>{{cnt}}</td>
+                                <td>{{freq}}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {%else%}
+                    По указанному запросу ничего не найдено
+                {%endif%}
             </div>
         </div>
         <!-- Вариант 1: пакет Bootstrap с Popper -->
