@@ -2,7 +2,7 @@
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <![endif]-->
 <html data-bs-theme="dark">
     <head>
         <meta charset="utf-8">
@@ -30,10 +30,10 @@
                 <div class="collapse navbar-collapse d-flex justify-content-center" id="navbarSupportedContent"  >
                     <ul class="navbar-nav mr-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" href="/">Главная</a>
+                            <a class="nav-link" href="/">Главная</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/form/">Аналитика по вакансии</a>
+                            <a class="nav-link active" href="/form/">Аналитика по вакансиям</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/contacts/">Контакты</a>
@@ -49,14 +49,12 @@
                 <br>
                 <br>
                 <form action="/results/" method='post'>
-                    <input class="form-control" type="text" name="query_string" value="" placeholder="строка запроса">
+                    <input class="form-control" type="text" name="query_string" value="" placeholder="введите искомую вакансию">
                     <br>
-                    <!--<p><select class="form-select" name="where">
-                            <option value="all">Везде</option>
-                            <option value="company">В названии компании</option>
-                            <option selected value="name">В названии вакансии</option>
-                        </select>
-                    </p>-->
+                    <input class="form-control" type="text" name="stat_count" value="" placeholder="{{stat_count}} (введите количество анализируемых предложений)">
+                    <br>
+                    <input class="form-control" type="text" name="top_count" value="" placeholder="{{top_count}} (введите размер TOP-листа)">
+                    <br>
                     <button type="submit" class="btn btn-primary">
                         Запрос данных
                     </button>

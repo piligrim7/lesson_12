@@ -2,8 +2,8 @@ import re
 import json
 import requests
 import statistics as stat
+from collections import Counter, namedtuple
 
-MAX_COUNT = 35 #Количество вакансий, которые будем просматривать
 BASE_URL = 'http://api.hh.ru/' #Базовый url запроса
 
 #Запрашиваем словарь валют с коэффициентами пересчета на рубли
@@ -39,7 +39,7 @@ def get_RUR_salary(currency: str, salary_value: float, currencies: dict = curren
             return salary_value/dict_currency['rate']
     return None
 
-def find_vacancies_data(query_string: str):
+def find_vacancies_data(query_string: str, stat_count: int, top_count: int):
     text = query_string # 'python developer'# 'Программист Python' #запрос вакансии
 
     print(f'\nТекст запроса на hh.ru: "{text}"')
@@ -47,8 +47,10 @@ def find_vacancies_data(query_string: str):
     params = {'text': text}
 
     salaries = list() #Список средних, приведенных к рублям зарплат по каждой вакансии (если не None)
-    skills: dict[str, int] = {} #Словарь скилов с количеством по наличию в просматриваемых вакансиях
+    # skills: dict[str, int] = {} #Словарь скилов с количеством по наличию в просматриваемых вакансиях
+    skills_ar = list() #Временный список всех скилов
     areas: dict[str, int] = {} #Словарь городов, где размещены просматриваемые вакансии
+    areas_ar = list() #Временный список всех городов
     vacancies_count: int = 0 #Количество найденных вакансий
 
     count = 0 #счетчик просмотренных вакансий
@@ -64,12 +66,12 @@ def find_vacancies_data(query_string: str):
             page_count = vacancies['pages'] #Определяем количество страниц
             vacancies_count = vacancies["found"] 
             print((f'\nНайдено вакансий: {vacancies_count}') +
-                (f', обрабатываем первые {MAX_COUNT }' if MAX_COUNT < vacancies_count else '')
+                (f', обрабатываем первые {stat_count}' if stat_count < vacancies_count else '')
                 )
 
         for item in vacancies['items']: #Цикл по вакансиям на странице
             count+=1
-            if count > MAX_COUNT:
+            if count > stat_count:
                 break #прерываем цикл по вакансиям, если достигнуто заданное количество просматриваемых вакансий
 
             #Определяем, пересчитываем в рубли и добавляем уровень зарплаты по текущей вакансии
@@ -85,28 +87,38 @@ def find_vacancies_data(query_string: str):
             vacancy = requests.get(item['url']).json()
             #В списке требований текущей вакансии удаляем русские слова и слово framework, собираем уникальные требования, из английских названий и аббревиатур
             vacancy_skills = set(
-                re.sub(r'[ЁёА-я]', '', key_skill['name'].lower().replace(' framework', '')).strip() for key_skill in vacancy['key_skills'] if re.search('[a-zA-Z]', key_skill['name'])
+                # re.sub(r'[ЁёА-я]', '', key_skill['name'].lower().replace(' framework', '')).strip() for key_skill in vacancy['key_skills'] if re.search('[a-zA-Z]', key_skill['name'])
+                key_skill['name'].lower().replace(' framework', '').strip() for key_skill in vacancy['key_skills']
                 )
-            #Добавляем требования текущей вакансии в общий словарь требований с инкрементом количества уже существующего требования
-            for skill in vacancy_skills:
-                skills[skill] = skills.setdefault(skill, 0) + 1
+            # #Добавляем требования текущей вакансии в общий словарь требований с инкрементом количества уже существующего требования
+            # for skill in vacancy_skills:
+            #     skills[skill] = skills.setdefault(skill, 0) + 1
+            
+            #Пополняем списки скилов и городов
+            skills_ar.extend(vacancy_skills)
+            areas_ar.append(vacancy['area']['name'])
             
             # #Добавляем город в общий словарь с инкрементом количества уже существующего города
             # area = vacancy['area']['name']
             # areas[area]= areas.setdefault(area, 0) + 1
-        if count > MAX_COUNT:
+        if count > stat_count:
             break #прерываем цикл по страницам, если достигнуто заданное количество просматриваемых вакансий
 
-    #Сортируем требования по убыванию их количества в просмотренных вакансиях
-    skills = dict(sorted(skills.items(), key=lambda x: x[1], reverse=True))
+    # #Сортируем требования по убыванию их количества в просмотренных вакансиях
+    # skills = dict(sorted(skills.items(), key=lambda x: x[1], reverse=True))
+    
+    # Объявляем именованный tuple
+    StatName = namedtuple('StatName', ['num', 'name', 'cnt', 'freq'])
+    
+    # Считаем частоту, с которой встречаются города (области)
+    name_counts = Counter(areas_ar)
+    # Выбираем top_count самых частых городов
+    areas = [StatName(index+1, name, cnt, round(cnt*100/stat_count, 1)) for index, (name, cnt) in enumerate(name_counts.most_common(top_count))]
 
-    #Сортируем города по убыванию их количества в просмотренных вакансиях
-    areas = dict(sorted(areas.items(), key=lambda x: x[1], reverse=True))
-
-    # #Считаем сумму "количеств" всех требований
-    # all_skills_count = sum(skills.values())
-    # #Считаем сумму "количеств" всех городов
-    # all_areas_count = sum(areas.values())
+    #Считаем частоту, с которой встречаются скилы в списке
+    name_counts = Counter(skills_ar)
+    # Выбираем top_count самых частых скилов
+    skills = [StatName(index+1, name, cnt, round(cnt*100/stat_count, 1)) for index, (name, cnt) in enumerate(name_counts.most_common(top_count))]
 
     # #Выводим среднюю зарплату
     # print(f'\nСредняя зарплата: {int(round(stat.mean(salaries), 0)) if len(salaries)>0 else "-"} рублей')
@@ -135,7 +147,9 @@ def find_vacancies_data(query_string: str):
     return {
         'query_string': query_string,
         'vacancies_count': vacancies_count,
-        'salaries': salaries,
+        'average_salary': int(round(stat.mean(salaries), 0)) if len(salaries)>0 else -1,
         'skills': skills,
-        'areas': areas
+        'areas': areas,
+        'stat_count': stat_count,
+        'top_count': top_count
         }

@@ -2,6 +2,8 @@ from flask import Flask, render_template, request
 import hh_parser as hh
 
 app = Flask(__name__)
+STAT_COUNT = 35 #Количество вакансий, которые будем просматривать для сбора статистики
+TOP_COUNT = 7 #Количество записей для вывода TOPа
 
 @app.route('/')
 def index():
@@ -23,20 +25,28 @@ def contacts():
 @app.route('/form/')
 def form():
     context={
-        'title': 'Страница запроса информации по вакансиям'
+        'title': 'Страница запроса информации по вакансиям',
+        'stat_count': STAT_COUNT,
+        'top_count': TOP_COUNT
     }
     return render_template('form.html', **context)
 
 @app.route('/results/', methods=['POST'])
 def results():
-    context={
-        'title': 'Страница аналитики по запрошенным вакансиям'
-    }
     query_string = request.form['query_string']
-    vacancies_data = hh.find_vacancies_data(query_string=query_string)
-    #data = [query_string, 'python', 'js']
-
-    return render_template('results.html', vacancies = vacancies_data['vacancies'].keys(), **context)
+    try:
+        stat_count = int( request.form['stat_count'])
+    except:
+        stat_count = STAT_COUNT
+    try:
+        top_count = int(request.form['top_count'])
+    except:
+        top_count = TOP_COUNT
+    context=hh.find_vacancies_data(query_string=query_string, stat_count=stat_count, top_count=top_count)
+    context['title']='Страница аналитики по запрошенным вакансиям'
+    context['stat_count']= stat_count
+    context['top_count']= top_count
+    return render_template('results.html', **context)
 
 if __name__ == '__main__':
     app.run(debug=True)
