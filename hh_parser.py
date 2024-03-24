@@ -1,8 +1,9 @@
-import re
-import json
+# import re
+# import json
 import requests
 import statistics as stat
 from collections import Counter, namedtuple
+import db_worker
 
 BASE_URL = 'http://api.hh.ru/' #Базовый url запроса
 
@@ -57,6 +58,8 @@ def find_vacancies_data(query_string: str, stat_count: int, top_count: int):
     page_num = 0 #номер текущей страницы
     page_count = 1 #Количество страниц по запросу (перед первым запросом ставим 1, уточняем при первом запросе)
 
+    vdb = db_worker.VacancyDB(db_file_name='hh.sqlite') #создем экземпляр класса VacancyDB для работы с базой данных
+
     while page_num < page_count: #Цикл по страницам
         page_num+=1
         params['page'] = page_num-1 #Задаем индекс страницы
@@ -70,34 +73,47 @@ def find_vacancies_data(query_string: str, stat_count: int, top_count: int):
                 )
 
         for item in vacancies['items']: #Цикл по вакансиям на странице
+            hh_id = int(item['id'])
+            vacancy_id = vdb.get_vacancy_id(hh_id=hh_id)
             count+=1
             if count > stat_count:
                 break #прерываем цикл по вакансиям, если достигнуто заданное количество просматриваемых вакансий
 
-            #Определяем, пересчитываем в рубли и добавляем уровень зарплаты по текущей вакансии
-            salary = item['salary']
-            if salary is not None:
-                s_ar = append_boundary_salary_range(salary_range=[], boundary=salary['from'])
-                s_ar = append_boundary_salary_range(salary_range=s_ar, boundary=salary['to'])
-                mean = get_RUR_salary(currency=salary['currency'], salary_value=stat.mean(s_ar))
-                if mean is not None:
-                    salaries.append(mean)
+            if vacancy_id>0:
+                salary_rub, area = vdb.get_vacancy_data_by_vacancy_id(vacancy_id=vacancy_id)
+                if salary_rub is not None:
+                    salaries.append(salary_rub)
+                vacancy_skills = vdb.get_skills_by_vacancy_id(vacancy_id=vacancy_id)
 
-            #Запрашиваем требования по текущей вакансии
-            vacancy = requests.get(item['url']).json()
-            #В списке требований текущей вакансии удаляем русские слова и слово framework, собираем уникальные требования, из английских названий и аббревиатур
-            vacancy_skills = set(
-                # re.sub(r'[ЁёА-я]', '', key_skill['name'].lower().replace(' framework', '')).strip() for key_skill in vacancy['key_skills'] if re.search('[a-zA-Z]', key_skill['name'])
-                key_skill['name'].lower().replace(' framework', '').strip() for key_skill in vacancy['key_skills']
-                )
-            # #Добавляем требования текущей вакансии в общий словарь требований с инкрементом количества уже существующего требования
-            # for skill in vacancy_skills:
-            #     skills[skill] = skills.setdefault(skill, 0) + 1
-            
+            else:
+                #Определяем, пересчитываем в рубли и добавляем уровень зарплаты по текущей вакансии
+                salary = item['salary']
+                salary_rub = None
+                if salary is not None:
+                    s_ar = append_boundary_salary_range(salary_range=[], boundary=salary['from'])
+                    s_ar = append_boundary_salary_range(salary_range=s_ar, boundary=salary['to'])
+                    salary_rub = get_RUR_salary(currency=salary['currency'], salary_value=stat.mean(s_ar))
+                    if salary_rub is not None:
+                        salaries.append(salary_rub)
+
+                #Запрашиваем требования по текущей вакансии
+                vacancy = requests.get(item['url']).json()
+                #В списке требований текущей вакансии удаляем слово framework, собираем уникальные требования
+                vacancy_skills = set(
+                    # re.sub(r'[ЁёА-я]', '', key_skill['name'].lower().replace(' framework', '')).strip() for key_skill in vacancy['key_skills'] if re.search('[a-zA-Z]', key_skill['name'])
+                    key_skill['name'].lower().replace(' framework', '').strip() for key_skill in vacancy['key_skills']
+                    )
+                # #Добавляем требования текущей вакансии в общий словарь требований с инкрементом количества уже существующего требования
+                # for skill in vacancy_skills:
+                #     skills[skill] = skills.setdefault(skill, 0) + 1
+                
+                area = vacancy['area']['name']
+                vdb.set_vacancy(hh_id=hh_id, name=item['name'], salary=salary_rub, area_name=area, skills=list(vacancy_skills))
+                
             #Пополняем списки скилов и городов
             skills_ar.extend(vacancy_skills)
-            areas_ar.append(vacancy['area']['name'])
-            
+            areas_ar.append(area)
+                
             # #Добавляем город в общий словарь с инкрементом количества уже существующего города
             # area = vacancy['area']['name']
             # areas[area]= areas.setdefault(area, 0) + 1
