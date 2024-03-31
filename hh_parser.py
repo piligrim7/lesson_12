@@ -1,9 +1,7 @@
-# import re
-# import json
 import requests
 import statistics as stat
 from collections import Counter, namedtuple
-import db_worker
+import model
 
 BASE_URL = 'http://api.hh.ru/' #Базовый url запроса
 
@@ -58,33 +56,31 @@ def find_vacancies_data(query_string: str, stat_count: int, top_count: int):
     page_num = 0 #номер текущей страницы
     page_count = 1 #Количество страниц по запросу (перед первым запросом ставим 1, уточняем при первом запросе)
 
-    vdb = db_worker.VacancyDB(db_file_name='hh.sqlite') #создем экземпляр класса VacancyDB для работы с базой данных
-
     while page_num < page_count: #Цикл по страницам
         page_num+=1
         params['page'] = page_num-1 #Задаем индекс страницы
         #Запрашиваем вакансии текущей страницы
-        vacancies = requests.get(url=BASE_URL+'vacancies/', params=params).json()
+        vacancies_hh = requests.get(url=BASE_URL+'vacancies/', params=params).json()
         if page_num==1:
-            page_count = vacancies['pages'] #Определяем количество страниц
-            vacancies_count = vacancies["found"] 
+            page_count = vacancies_hh['pages'] #Определяем количество страниц
+            vacancies_count = vacancies_hh["found"] 
             print((f'\nНайдено вакансий: {vacancies_count}') +
                 (f', обрабатываем первые {stat_count}' if stat_count < vacancies_count else '')
                 )
 
-        for item in vacancies['items']: #Цикл по вакансиям на странице
+        for item in vacancies_hh['items']: #Цикл по вакансиям на странице
             hh_id = int(item['id'])
-            vacancy_id = vdb.get_vacancy_id(hh_id=hh_id)
+            vacancy: model.Vacancy = model.Vacancy.get_vacancy(hh_id=hh_id)
             count+=1
             if count > stat_count:
                 break #прерываем цикл по вакансиям, если достигнуто заданное количество просматриваемых вакансий
 
-            if vacancy_id>0:
-                salary_rub, area = vdb.get_vacancy_data_by_vacancy_id(vacancy_id=vacancy_id)
+            if vacancy is not None:
+                salary_rub = vacancy.salary
+                area_name = vacancy.area.name
                 if salary_rub is not None:
                     salaries.append(salary_rub)
-                vacancy_skills = vdb.get_skills_by_vacancy_id(vacancy_id=vacancy_id)
-
+                vacancy_skills = model.Vacancy_Skill.get_skills_by_vacancy_id(vacancy_id=vacancy.vacancy_id)
             else:
                 #Определяем, пересчитываем в рубли и добавляем уровень зарплаты по текущей вакансии
                 salary = item['salary']
@@ -97,22 +93,22 @@ def find_vacancies_data(query_string: str, stat_count: int, top_count: int):
                         salaries.append(salary_rub)
 
                 #Запрашиваем требования по текущей вакансии
-                vacancy = requests.get(item['url']).json()
+                vacancy_hh = requests.get(item['url']).json()
                 #В списке требований текущей вакансии удаляем слово framework, собираем уникальные требования
                 vacancy_skills = set(
                     # re.sub(r'[ЁёА-я]', '', key_skill['name'].lower().replace(' framework', '')).strip() for key_skill in vacancy['key_skills'] if re.search('[a-zA-Z]', key_skill['name'])
-                    key_skill['name'].lower().replace(' framework', '').strip() for key_skill in vacancy['key_skills']
+                    key_skill['name'].lower().replace(' framework', '').strip() for key_skill in vacancy_hh['key_skills']
                     )
                 # #Добавляем требования текущей вакансии в общий словарь требований с инкрементом количества уже существующего требования
                 # for skill in vacancy_skills:
                 #     skills[skill] = skills.setdefault(skill, 0) + 1
                 
-                area = vacancy['area']['name']
-                vdb.set_vacancy(hh_id=hh_id, name=item['name'], salary=salary_rub, area_name=area, skills=list(vacancy_skills))
+                area_name = vacancy_hh['area']['name']
+                model.Vacancy.set_vacancy(hh_id=hh_id, name=item['name'], salary=salary_rub, area_name=area_name, skills=list(vacancy_skills))
                 
             #Пополняем списки скилов и городов
             skills_ar.extend(vacancy_skills)
-            areas_ar.append(area)
+            areas_ar.append(area_name)
                 
             # #Добавляем город в общий словарь с инкрементом количества уже существующего города
             # area = vacancy['area']['name']
